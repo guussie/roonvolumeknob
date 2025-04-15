@@ -26,7 +26,7 @@ let initialVolumeSet = false;
 let webhookUrl = null;
 let bluetoothConfig = {
     deviceName: "VOL20",
-    macAddress: "F0:19:88:40:85:22", // Use the MAC address shown in your logs
+    macAddress: "XX:XX:XX:XX:XX:XX", // Use the MAC address shown in your logs
     startupVolume: 5
 };
 let deviceBatteryInfo = {
@@ -35,7 +35,7 @@ let deviceBatteryInfo = {
 };
 let homebridgeConfig = {
     enabled: false,
-    url: 'http://192.168.68.206:51828',
+    url: 'http://xxx.xxx.xxx.xxx:51828',
     accessoryId: 'vol20_dining_battery',
     deviceName: 'VOL20-Dining'  //Add a device identifier
 };
@@ -165,26 +165,35 @@ function findVOL20Device() {
                         if (!err && out.includes("Connected: yes")) {
                             console.log("VOL20 is connected");
                             
-                            // Now let's find the input device
+                            // Now let's find the input device by checking each event device
                             exec('ls -l /dev/input/event*', (err2, out2) => {
                                 if (!err2) {
-                                    // Try all event devices starting from the latest ones
+                                    // Get list of event devices
                                     const eventDevs = out2.match(/event\d+/g);
                                     if (eventDevs && eventDevs.length > 0) {
-                                        // Sort event devices by number (latest first)
-                                        eventDevs.sort((a, b) => {
-                                            return parseInt(b.replace('event', '')) - 
-                                                   parseInt(a.replace('event', ''));
-                                        });
+                                        console.log(`Found ${eventDevs.length} event devices. Checking each one for VOL20...`);
                                         
-                                        console.log(`Found ${eventDevs.length} event devices. Using ${eventDevs[0]}`);
-                                        resolve(`/dev/input/${eventDevs[0]}`);
+                                        // Check each event device sequentially
+                                        findVOL20EventDevice(eventDevs, 0)
+                                            .then(eventDevice => {
+                                                if (eventDevice) {
+                                                    console.log(`Found VOL20 at ${eventDevice}`);
+                                                    resolve(`/dev/input/${eventDevice}`);
+                                                } else {
+                                                    console.log("Could not find VOL20 among event devices. Using fallback.");
+                                                    resolve('/dev/input/event0');
+                                                }
+                                            })
+                                            .catch(e => {
+                                                console.error("Error finding VOL20 event device:", e);
+                                                resolve('/dev/input/event0');
+                                            });
                                         return;
                                     }
                                 }
                                 
                                 // Fallback to a hardcoded device
-                                console.log("Could not find event device. Using fallback.");
+                                console.log("Could not list event devices. Using fallback.");
                                 resolve('/dev/input/event0');
                             });
                         } else {
@@ -205,7 +214,66 @@ function findVOL20Device() {
     });
 }
 
-// Function to check if evtest is installed
+// Helper function to check each event device for VOL20
+function findVOL20EventDevice(eventDevs, index) {
+    return new Promise((resolve, reject) => {
+        if (index >= eventDevs.length) {
+            // We've checked all devices and didn't find VOL20
+            resolve(null);
+            return;
+        }
+
+        const eventDevice = eventDevs[index];
+        console.log(`Checking ${eventDevice}...`);
+        
+        // Run evtest and capture the initial output which contains device info
+        const devicePath = `/dev/input/${eventDevice}`;
+        const process = spawn('timeout', ['1', 'evtest', devicePath]);
+        let output = '';
+        
+        process.stdout.on('data', (data) => {
+            output += data.toString();
+            // Once we have some output, kill the process
+            if (output.length > 0) {
+                process.kill();
+            }
+        });
+        
+        process.stderr.on('data', (data) => {
+            console.log(`Info from ${eventDevice}: ${data}`);
+        });
+        
+        process.on('close', (code) => {
+            // Check if the output contains "VOL20"
+            if (output.includes('VOL20')) {
+                console.log(`Found VOL20 in ${eventDevice}`);
+                resolve(eventDevice);
+            } else {
+                // Try with a direct grep approach as a backup
+                exec(`sudo evtest ${devicePath} | grep -i "VOL20"`, { timeout: 1000 }, (err, stdout) => {
+                    if (!err && stdout.includes('VOL20')) {
+                        console.log(`Found VOL20 in ${eventDevice} with grep`);
+                        resolve(eventDevice);
+                    } else {
+                        // Check next device
+                        findVOL20EventDevice(eventDevs, index + 1)
+                            .then(resolve)
+                            .catch(reject);
+                    }
+                });
+            }
+        });
+        
+        // Handle error in case evtest fails
+        process.on('error', (err) => {
+            console.error(`Error running evtest on ${eventDevice}:`, err);
+            // Continue to next device
+            findVOL20EventDevice(eventDevs, index + 1)
+                .then(resolve)
+                .catch(reject);
+        });
+    });
+}// Function to check if evtest is installed
 function checkEvtestInstalled() {
     return new Promise((resolve) => {
         exec('which evtest', (error, stdout) => {
@@ -892,7 +960,7 @@ async function reportBatteryToHomebridgeWithConfig(batteryLevel) {
 
 // Function to get battery information
 async function getDeviceBatteryInfo() {
-    const macAddress = bluetoothConfig.macAddress || 'F0:19:88:40:85:22';
+    const macAddress = bluetoothConfig.macAddress || 'XX:XX:XX:XX:XX:XX';
     
     try {
         console.log(`Checking battery for device ${macAddress}...`);
@@ -1137,7 +1205,7 @@ async function startBluetoothMonitoring() {
 
 // Function to ensure VOL20 is connected
 async function ensureVOL20Connected() {
-    const macAddress = bluetoothConfig.macAddress || 'F0:19:88:40:85:22'; // Use saved MAC or fallback
+    const macAddress = bluetoothConfig.macAddress || 'XX:X:XX:XX:XX:XX'; // Use saved MAC or fallback
     
     console.log(`Checking connection to VOL20 (${macAddress})...`);
     
