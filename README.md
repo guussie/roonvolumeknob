@@ -1,4 +1,4 @@
-For the full description of this application head to the Wiki.
+For the full description of this application head to the Wiki (https://github.com/guussie/roonvolumeknob/wiki/Roon-Bluetooth-Volume-with-the-Fosi-Audio-VOL20-Bluetooth-Knob).
 
 This application allows for the use of a Fosi Audio VOL20 Bluetooth Volume Kno to be used to control the volume of a Roon Zone.
 
