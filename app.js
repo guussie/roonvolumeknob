@@ -540,7 +540,7 @@ app.get('/', (req, res) => {
                 <h2>Status</h2>
                 <p>Selected Zone: ${selectedZoneName}</p>
                 <p>Current Volume: ${currentVolumeDisplay}</p>
-                <p>Device: VOL20 (${bluetoothConfig.macAddress || 'F0:19:88:40:85:22'})</p>
+                <p>Device: VOL20 (${bluetoothConfig.macAddress || 'xx:xx:xx:xx:xx:xx'})</p>
                 
                 <div class="battery-info">
                     <span class="battery-icon">${batteryIcon}</span>
