@@ -17,7 +17,7 @@ At this point, the application works pretty well. Features are:
   - The web hooks can be integrated with Homebridge/Homekit
   - In Homekit you can set an alert when the battery level goes down to a certain level
 
-To mak ethe applicationwork, a number of settings still need to be entered manually in the code. This includes:
+To make the applicationwork, a number of settings still need to be entered manually in the code. This includes:
 
 - Setting startup volume level
 - MAC Address of the VOL20 device (on an Apple Mac, the MAC address can be found by pairing the VOL20 knob with a Mac, then finding the MAC Address in the System Report)
